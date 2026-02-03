@@ -40,19 +40,24 @@ jobs:
       run: python ga_stats.py
     - name: Update summary with GA stats
       run: |
-        echo "## GA Stats" >> $GITHUB_STEP_SUMMARY
-        echo "### Total" >> $GITHUB_STEP_SUMMARY
-        echo "- Active Users: $(jq '.total.active_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
-        echo "- Screen Page Views: $(jq '.total.screen_page_views' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
-        echo "- Total Users: $(jq '.total.total_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
-        echo "### Last 30 Days" >> $GITHUB_STEP_SUMMARY
-        echo "- Active Users: $(jq '.["30days"].active_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
-        echo "- Screen Page Views: $(jq '.["30days"].screen_page_views' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
-        echo "- Total Users: $(jq '.["30days"].total_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
-        echo "### Yesterday" >> $GITHUB_STEP_SUMMARY
-        echo "- Active Users: $(jq '.yesterday.active_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
-        echo "- Screen Page Views: $(jq '.yesterday.screen_page_views' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
-        echo "- Total Users: $(jq '.yesterday.total_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        python3 -c "
+        import json
+        with open('_data/ga_stats.json') as f:
+            data = json.load(f)
+        print('## GA Stats')
+        print('### Total')
+        print(f'- Active Users: {data[\"total\"][\"active_users\"]}')
+        print(f'- Screen Page Views: {data[\"total\"][\"screen_page_views\"]}')
+        print(f'- Total Users: {data[\"total\"][\"total_users\"]}')
+        print('### Last 30 Days')
+        print(f'- Active Users: {data[\"30days\"][\"active_users\"]}')
+        print(f'- Screen Page Views: {data[\"30days\"][\"screen_page_views\"]}')
+        print(f'- Total Users: {data[\"30days\"][\"total_users\"]}')
+        print('### Yesterday')
+        print(f'- Active Users: {data[\"yesterday\"][\"active_users\"]}')
+        print(f'- Screen Page Views: {data[\"yesterday\"][\"screen_page_views\"]}')
+        print(f'- Total Users: {data[\"yesterday\"][\"total_users\"]}')
+        " >> $GITHUB_STEP_SUMMARY
     - name: Display GA stats
       run: cat _data/ga_stats.json
     - name: Upload GA stats as artifact
