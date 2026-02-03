@@ -31,6 +31,9 @@ request = RunReportRequest(
 
 response = client.run_report(request)
 
+# 전체 response 출력 (디버깅용)
+print(json.dumps(response, indent=2, default=str))
+
 # 데이터 추출 (첫 번째 행 가정)
 if response.rows:
     row = response.rows[0]
