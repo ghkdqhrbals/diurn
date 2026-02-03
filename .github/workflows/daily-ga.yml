@@ -23,10 +23,10 @@ jobs:
         GA_KEY: ${{ secrets.GA_KEY }}
         GA_PROPERTY_ID: ${{ secrets.GA_PROPERTY_ID }}
       run: python ga_stats.py
-    - name: Commit and push changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add _data/ga_stats.json
-        git commit -m "Update daily GA stats" || echo "No changes to commit"
-        git push
+    - name: Display GA stats
+      run: cat _data/ga_stats.json
+    - name: Upload GA stats as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ga-stats
+        path: _data/ga_stats.json
