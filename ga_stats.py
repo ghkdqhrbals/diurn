@@ -9,17 +9,18 @@ from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, Run
 key_json = os.environ['GA_KEY']
 property_id = os.environ['GA_PROPERTY_ID']
 
+# 환경 변수에서 날짜 가져오기 (기본값 yesterday)
+start_date = os.environ.get('START_DATE', 'yesterday')
+end_date = os.environ.get('END_DATE', 'yesterday')
+
 # 서비스 계정 인증
 credentials = service_account.Credentials.from_service_account_info(json.loads(key_json))
 client = BetaAnalyticsDataClient(credentials=credentials)
 
-# 어제 날짜
-yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-
 # GA4 보고서 요청
 request = RunReportRequest(
     property=f'properties/{property_id}',
-    date_ranges=[DateRange(start_date='yesterday', end_date='yesterday')],
+    date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
     dimensions=[Dimension(name='date')],
     metrics=[
         Metric(name='activeUsers'),

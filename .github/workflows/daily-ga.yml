@@ -4,6 +4,15 @@ on:
   schedule:
     - cron: '0 0 * * *'  # 매일 자정 UTC
   workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Start date (YYYY-MM-DD or "yesterday")'
+        required: false
+        default: 'yesterday'
+      end_date:
+        description: 'End date (YYYY-MM-DD or "yesterday")'
+        required: false
+        default: 'yesterday'
 
 jobs:
   update-stats:
@@ -22,6 +31,8 @@ jobs:
       env:
         GA_KEY: ${{ secrets.GA_KEY }}
         GA_PROPERTY_ID: ${{ secrets.GA_PROPERTY_ID }}
+        START_DATE: ${{ github.event.inputs.start_date || 'yesterday' }}
+        END_DATE: ${{ github.event.inputs.end_date || 'yesterday' }}
       run: python ga_stats.py
     - name: Update summary with GA stats
       run: |

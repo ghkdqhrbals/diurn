@@ -14,7 +14,7 @@ Jekyll 기반 사이트로, GitHub Actions를 사용하여 매일 Google Analyti
 ## 워크플로우
 
 - 매일 자정(UTC)에 자동으로 실행됩니다.
-- 수동으로도 실행 가능합니다 (Actions 탭에서).
+- 수동으로도 실행 가능합니다 (Actions 탭에서). 수동 실행 시 start_date와 end_date를 지정할 수 있습니다 (기본값: yesterday).
 
 ## 데이터 사용
 
