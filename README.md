@@ -7,7 +7,7 @@ GitHub Action to fetch Google Analytics 4 daily stats and save to JSON.
 Add this action to your workflow:
 
 ```yaml
-- uses: ghkdqhrbals/ga-stats-fetcher@main
+- uses: ghkdqhrbals/ga-stats-fetcher@v1.1.0
   with:
     ga_key: ${{ secrets.GA_KEY }}
     ga_property_id: '123456789'
@@ -17,14 +17,25 @@ This will generate `_data/ga_stats.json` with stats for total, last 30 days, and
 
 ## JavaScript Widget
 
-Embed the GA stats widget in your HTML:
+Embed the GA stats widget in any HTML page:
 
 ```html
 <div id="ga-stats"></div>
-<script src="https://your-username.github.io/your-repo/assets/ga_stats.js"></script>
+<script src="https://ghkdqhrbals.github.io/diurn/assets/ga_stats.js"></script>
 ```
 
-This will display the GA stats in the div. Adjust the script src to your GitHub Pages URL.
+This fetches the latest GA stats from `https://ghkdqhrbals.github.io/diurn/assets/ga_stats.json` and displays them in the `#ga-stats` div.
+
+### Customization
+
+You can host your own copy of the widget by copying `assets/ga_stats.js` to your repository and updating the fetch URL:
+
+```javascript
+// In your ga_stats.js
+const response = await fetch('https://your-site.com/path/to/ga_stats.json');
+```
+
+The widget applies basic styling; you can customize with CSS.
 
 ## Jekyll Integration
 

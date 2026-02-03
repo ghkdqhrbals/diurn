@@ -9,6 +9,13 @@
     const data = await response.json();
 
     const html = `
+      <style>
+        .ga-stats { font-family: Arial, sans-serif; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+        .ga-stats h3 { margin-top: 0; }
+        .stat-section { margin-bottom: 15px; }
+        .stat-section h4 { margin-bottom: 5px; color: #333; }
+        .stat-section p { margin: 2px 0; }
+      </style>
       <div class="ga-stats">
         <h3>GA Statistics</h3>
         <div class="stat-section">
