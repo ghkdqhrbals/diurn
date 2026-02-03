@@ -17,6 +17,9 @@ on:
 jobs:
   update-stats:
     runs-on: ubuntu-latest
+    env:
+      START_DATE: ${{ github.event.inputs.start_date || 'yesterday' }}
+      END_DATE: ${{ github.event.inputs.end_date || 'yesterday' }}
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
@@ -37,6 +40,8 @@ jobs:
     - name: Update summary with GA stats
       run: |
         echo "## GA Daily Stats" >> $GITHUB_STEP_SUMMARY
+        echo "Start Date: ${{ env.START_DATE }}" >> $GITHUB_STEP_SUMMARY
+        echo "End Date: ${{ env.END_DATE }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         cat _data/ga_stats.json >> $GITHUB_STEP_SUMMARY
     - name: Display GA stats

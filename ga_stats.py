@@ -34,8 +34,11 @@ response = client.run_report(request)
 # 데이터 추출 (첫 번째 행 가정)
 if response.rows:
     row = response.rows[0]
+    date_str = row.dimension_values[0].value
+    date_obj = datetime.strptime(date_str, '%Y%m%d')
+    formatted_date = date_obj.strftime('%Y-%m-%d')
     data = {
-        'date': row.dimension_values[0].value,
+        'date': formatted_date,
         'activeUsers': int(row.metric_values[0].value),
         'screenPageViews': int(row.metric_values[1].value),
         'totalUsers': int(row.metric_values[2].value),
