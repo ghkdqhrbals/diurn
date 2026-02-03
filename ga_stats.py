@@ -50,6 +50,10 @@ ranges = [
 ]
 stats_list = get_stats_for_ranges(ranges)
 
+print(f"Stats list length: {len(stats_list)}")
+for i, stat in enumerate(stats_list):
+    print(f"Range {i}: {stat}")
+
 data = {
     'total': stats_list[0] if len(stats_list) > 0 else {'active_users': 0, 'screen_page_views': 0, 'total_users': 0},
     '30days': stats_list[1] if len(stats_list) > 1 else {'active_users': 0, 'screen_page_views': 0, 'total_users': 0},
