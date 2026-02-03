@@ -20,12 +20,12 @@ yesterday_str = yesterday_date.strftime('%Y-%m-%d')
 thirty_days_ago = today - timedelta(days=30)
 thirty_days_ago_str = thirty_days_ago.strftime('%Y-%m-%d')
 
-# 헬퍼 함수: 기간 데이터 가져오기
-def get_stats(start_date, end_date):
+# 헬퍼 함수: 기간 데이터 가져오기 (단일 요청)
+def get_stats_for_ranges(ranges):
     request = RunReportRequest(
         property=f'properties/{property_id}',
-        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
-        dimensions=[Dimension(name='date')],
+        date_ranges=ranges,
+        # dimensions=[Dimension(name='date')],  # 제거하여 range별 합산
         metrics=[
             Metric(name='activeUsers'),
             Metric(name='screenPageViews'),
@@ -33,26 +33,27 @@ def get_stats(start_date, end_date):
         ],
     )
     response = client.run_report(request)
-    if response.rows:
-        total_active_users = sum(int(row.metric_values[0].value) for row in response.rows)
-        total_screen_page_views = sum(int(row.metric_values[1].value) for row in response.rows)
-        total_users = sum(int(row.metric_values[2].value) for row in response.rows)
-        return {
-            'active_users': total_active_users,
-            'screen_page_views': total_screen_page_views,
-            'total_users': total_users,
-        }
-    return {'active_users': 0, 'screen_page_views': 0, 'total_users': 0}
+    stats = []
+    for row in response.rows:
+        stats.append({
+            'active_users': int(row.metric_values[0].value),
+            'screen_page_views': int(row.metric_values[1].value),
+            'total_users': int(row.metric_values[2].value),
+        })
+    return stats
 
-# 데이터 가져오기
-total_stats = get_stats('2020-01-01', yesterday_str)  # 전체 기간
-thirty_days_stats = get_stats(thirty_days_ago_str, yesterday_str)
-yesterday_stats = get_stats(yesterday_str, yesterday_str)
+# 데이터 가져오기 (한 요청에 여러 ranges)
+ranges = [
+    DateRange(start_date='2020-01-01', end_date=yesterday_str),  # total
+    DateRange(start_date=thirty_days_ago_str, end_date=yesterday_str),  # 30days
+    DateRange(start_date=yesterday_str, end_date=yesterday_str),  # yesterday
+]
+stats_list = get_stats_for_ranges(ranges)
 
 data = {
-    'total': total_stats,
-    '30days': thirty_days_stats,
-    'yesterday': yesterday_stats,
+    'total': stats_list[0] if len(stats_list) > 0 else {'active_users': 0, 'screen_page_views': 0, 'total_users': 0},
+    '30days': stats_list[1] if len(stats_list) > 1 else {'active_users': 0, 'screen_page_views': 0, 'total_users': 0},
+    'yesterday': stats_list[2] if len(stats_list) > 2 else {'active_users': 0, 'screen_page_views': 0, 'total_users': 0},
 }
 
 # _data 폴더 생성
