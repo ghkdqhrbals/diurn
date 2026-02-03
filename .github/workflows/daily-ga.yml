@@ -23,6 +23,11 @@ jobs:
         GA_KEY: ${{ secrets.GA_KEY }}
         GA_PROPERTY_ID: ${{ secrets.GA_PROPERTY_ID }}
       run: python ga_stats.py
+    - name: Update summary with GA stats
+      run: |
+        echo "## GA Daily Stats" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        cat _data/ga_stats.json >> $GITHUB_STEP_SUMMARY
     - name: Display GA stats
       run: cat _data/ga_stats.json
     - name: Upload GA stats as artifact
