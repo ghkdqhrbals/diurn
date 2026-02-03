@@ -39,11 +39,19 @@ jobs:
       run: python ga_stats.py
     - name: Update summary with GA stats
       run: |
-        echo "## GA Daily Stats" >> $GITHUB_STEP_SUMMARY
-        echo "Start Date: ${{ env.START_DATE }}" >> $GITHUB_STEP_SUMMARY
-        echo "End Date: ${{ env.END_DATE }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        cat _data/ga_stats.json >> $GITHUB_STEP_SUMMARY
+        echo "## GA Stats" >> $GITHUB_STEP_SUMMARY
+        echo "### Total" >> $GITHUB_STEP_SUMMARY
+        echo "- Active Users: $(jq '.total.active_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        echo "- Screen Page Views: $(jq '.total.screen_page_views' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        echo "- Total Users: $(jq '.total.total_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        echo "### Last 30 Days" >> $GITHUB_STEP_SUMMARY
+        echo "- Active Users: $(jq '.30days.active_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        echo "- Screen Page Views: $(jq '.30days.screen_page_views' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        echo "- Total Users: $(jq '.30days.total_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        echo "### Yesterday" >> $GITHUB_STEP_SUMMARY
+        echo "- Active Users: $(jq '.yesterday.active_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        echo "- Screen Page Views: $(jq '.yesterday.screen_page_views' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
+        echo "- Total Users: $(jq '.yesterday.total_users' _data/ga_stats.json)" >> $GITHUB_STEP_SUMMARY
     - name: Display GA stats
       run: cat _data/ga_stats.json
     - name: Upload GA stats as artifact

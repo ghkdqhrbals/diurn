@@ -20,57 +20,40 @@ yesterday_str = yesterday_date.strftime('%Y-%m-%d')
 thirty_days_ago = today - timedelta(days=30)
 thirty_days_ago_str = thirty_days_ago.strftime('%Y-%m-%d')
 
-# GA4 보고서 요청
-request = RunReportRequest(
-    property=f'properties/{property_id}',
-    date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
-    dimensions=[Dimension(name='date')],
-    metrics=[
-        Metric(name='activeUsers'),
-        Metric(name='screenPageViews'),
-        Metric(name='totalUsers'),
-    ],
-)
+# 헬퍼 함수: 기간 데이터 가져오기
+def get_stats(start_date, end_date):
+    request = RunReportRequest(
+        property=f'properties/{property_id}',
+        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+        dimensions=[Dimension(name='date')],
+        metrics=[
+            Metric(name='activeUsers'),
+            Metric(name='screenPageViews'),
+            Metric(name='totalUsers'),
+        ],
+    )
+    response = client.run_report(request)
+    if response.rows:
+        total_active_users = sum(int(row.metric_values[0].value) for row in response.rows)
+        total_screen_page_views = sum(int(row.metric_values[1].value) for row in response.rows)
+        total_users = sum(int(row.metric_values[2].value) for row in response.rows)
+        return {
+            'active_users': total_active_users,
+            'screen_page_views': total_screen_page_views,
+            'total_users': total_users,
+        }
+    return {'active_users': 0, 'screen_page_views': 0, 'total_users': 0}
 
-from google.protobuf.json_format import MessageToDict
+# 데이터 가져오기
+total_stats = get_stats('2020-01-01', yesterday_str)  # 전체 기간
+thirty_days_stats = get_stats(thirty_days_ago_str, yesterday_str)
+yesterday_stats = get_stats(yesterday_str, yesterday_str)
 
-response = client.run_report(request)
-
-# 전체 response 출력 (디버깅용)
-response_dict = MessageToDict(response._pb)
-print(json.dumps(response_dict, indent=2))
-
-# 데이터 추출
-if response.rows:
-    total_active_users = 0
-    total_screen_page_views = 0
-    total_users = 0
-    dates = []
-    for row in response.rows:
-        date_str = row.dimension_values[0].value
-        date_obj = datetime.strptime(date_str, '%Y%m%d')
-        formatted_date = date_obj.strftime('%Y-%m-%d')
-        dates.append(formatted_date)
-        total_active_users += int(row.metric_values[0].value)
-        total_screen_page_views += int(row.metric_values[1].value)
-        total_users += int(row.metric_values[2].value)
-    data = {
-        'start_date': start_date,
-        'end_date': end_date,
-        'dates': dates,
-        'total_active_users': total_active_users,
-        'total_screen_page_views': total_screen_page_views,
-        'total_users': total_users,
-    }
-else:
-    data = {
-        'start_date': start_date,
-        'end_date': end_date,
-        'dates': [],
-        'total_active_users': 0,
-        'total_screen_page_views': 0,
-        'total_users': 0,
-    }
+data = {
+    'total': total_stats,
+    '30days': thirty_days_stats,
+    'yesterday': yesterday_stats,
+}
 
 # _data 폴더 생성
 os.makedirs('_data', exist_ok=True)
