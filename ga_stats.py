@@ -9,13 +9,16 @@ from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, Run
 key_json = os.environ['GA_KEY']
 property_id = os.environ['GA_PROPERTY_ID']
 
-# 환경 변수에서 날짜 가져오기 (기본값 yesterday)
-start_date = os.environ.get('START_DATE', 'yesterday')
-end_date = os.environ.get('END_DATE', 'yesterday')
-
 # 서비스 계정 인증
 credentials = service_account.Credentials.from_service_account_info(json.loads(key_json))
 client = BetaAnalyticsDataClient(credentials=credentials)
+
+# 날짜 계산
+today = datetime.now().date()
+yesterday_date = today - timedelta(days=1)
+yesterday_str = yesterday_date.strftime('%Y-%m-%d')
+thirty_days_ago = today - timedelta(days=30)
+thirty_days_ago_str = thirty_days_ago.strftime('%Y-%m-%d')
 
 # GA4 보고서 요청
 request = RunReportRequest(
@@ -29,29 +32,44 @@ request = RunReportRequest(
     ],
 )
 
+from google.protobuf.json_format import MessageToDict
+
 response = client.run_report(request)
 
 # 전체 response 출력 (디버깅용)
-print(json.dumps(response, indent=2, default=str))
+response_dict = MessageToDict(response._pb)
+print(json.dumps(response_dict, indent=2))
 
-# 데이터 추출 (첫 번째 행 가정)
+# 데이터 추출
 if response.rows:
-    row = response.rows[0]
-    date_str = row.dimension_values[0].value
-    date_obj = datetime.strptime(date_str, '%Y%m%d')
-    formatted_date = date_obj.strftime('%Y-%m-%d')
+    total_active_users = 0
+    total_screen_page_views = 0
+    total_users = 0
+    dates = []
+    for row in response.rows:
+        date_str = row.dimension_values[0].value
+        date_obj = datetime.strptime(date_str, '%Y%m%d')
+        formatted_date = date_obj.strftime('%Y-%m-%d')
+        dates.append(formatted_date)
+        total_active_users += int(row.metric_values[0].value)
+        total_screen_page_views += int(row.metric_values[1].value)
+        total_users += int(row.metric_values[2].value)
     data = {
-        'date': formatted_date,
-        'activeUsers': int(row.metric_values[0].value),
-        'screenPageViews': int(row.metric_values[1].value),
-        'totalUsers': int(row.metric_values[2].value),
+        'start_date': start_date,
+        'end_date': end_date,
+        'dates': dates,
+        'total_active_users': total_active_users,
+        'total_screen_page_views': total_screen_page_views,
+        'total_users': total_users,
     }
 else:
     data = {
-        'date': yesterday,
-        'activeUsers': 0,
-        'screenPageViews': 0,
-        'totalUsers': 0,
+        'start_date': start_date,
+        'end_date': end_date,
+        'dates': [],
+        'total_active_users': 0,
+        'total_screen_page_views': 0,
+        'total_users': 0,
     }
 
 # _data 폴더 생성
