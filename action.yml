@@ -1,0 +1,32 @@
+name: 'GA Stats Fetcher'
+description: 'Fetch Google Analytics 4 daily stats and save to JSON'
+author: 'Your Name'
+inputs:
+  ga_key:
+    description: 'Google Analytics service account key JSON string'
+    required: true
+  ga_property_id:
+    description: 'GA4 property ID'
+    required: true
+  start_date:
+    description: 'Start date (YYYY-MM-DD or "yesterday")'
+    required: false
+    default: 'yesterday'
+  end_date:
+    description: 'End date (YYYY-MM-DD or "yesterday")'
+    required: false
+    default: 'yesterday'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install dependencies
+      run: pip install google-analytics-data
+      shell: bash
+    - name: Run GA stats script
+      run: python ${{ github.action_path }}/ga_stats.py
+      shell: bash
+      env:
+        GA_KEY: ${{ inputs.ga_key }}
+        GA_PROPERTY_ID: ${{ inputs.ga_property_id }}
+        START_DATE: ${{ inputs.start_date }}
+        END_DATE: ${{ inputs.end_date }}

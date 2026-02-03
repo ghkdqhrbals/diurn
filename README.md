@@ -1,34 +1,31 @@
-# Diurn
+# GA Stats Fetcher
 
-Jekyll 기반 사이트로, GitHub Actions를 사용하여 매일 Google Analytics 통계를 가져와 JSON으로 저장합니다.
+GitHub Action to fetch Google Analytics 4 daily stats and save to JSON.
 
-## 설정
+## Usage
 
-1. Google Analytics 4 프로퍼티를 생성하고, 서비스 계정을 만드세요.
-2. 서비스 계정 키(JSON)를 다운로드하세요.
-3. GitHub 리포지토리의 Settings > Secrets and variables > Actions에서 다음 Secrets를 추가하세요:
-   - `GA_KEY`: 서비스 계정 JSON 키의 전체 내용
-   - `GA_PROPERTY_ID`: GA4 프로퍼티 ID (예: 123456789)
-4. 서비스 계정에 GA4 프로퍼티에 대한 읽기 권한을 부여하세요.
-
-## 워크플로우
-
-- 매일 자정(UTC)에 자동으로 실행됩니다.
-- 수동으로도 실행 가능합니다 (Actions 탭에서). 수동 실행 시 start_date와 end_date를 지정할 수 있습니다 (기본값: yesterday).
-
-## 데이터 사용
-
-`_data/ga_stats.json`에 저장된 데이터를 Jekyll에서 사용할 수 있습니다.
-
-예시:
-```liquid
-Active Users: {{ site.data.ga_stats.activeUsers }}
-Screen Page Views: {{ site.data.ga_stats.screenPageViews }}
-Total Users: {{ site.data.ga_stats.totalUsers }}
+```yaml
+- uses: your-username/ga-stats-fetcher@v1
+  with:
+    ga_key: ${{ secrets.GA_KEY }}
+    ga_property_id: '123456789'
+    start_date: '2023-01-01'
+    end_date: '2023-01-01'
 ```
 
-## 로컬 실행
+## Inputs
 
-```bash
-bundle exec jekyll serve
-```
+- `ga_key`: GA service account key JSON string (required)
+- `ga_property_id`: GA4 property ID (required)
+- `start_date`: Start date (optional, default: 'yesterday')
+- `end_date`: End date (optional, default: 'yesterday')
+
+## Outputs
+
+Saves `_data/ga_stats.json` with the stats.
+
+## Setup
+
+1. Create a GA4 property and service account with read access.
+2. Download the service account key JSON.
+3. Use the JSON as `ga_key` input (store in secrets).
