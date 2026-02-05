@@ -1,68 +1,92 @@
-import os
-import json
-from datetime import datetime, timedelta
-from google.oauth2 import service_account
-from google.analytics.data_v1beta import BetaAnalyticsDataClient
-from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, RunReportRequest
+# app.py
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from datetime import datetime, timezone, timedelta
+import sqlite3, hashlib
 
-# 환경 변수에서 키와 프로퍼티 ID 가져오기
-key_json = os.environ['GA_KEY']
-property_id = os.environ['GA_PROPERTY_ID']
+app = FastAPI()
 
-# 서비스 계정 인증
-credentials = service_account.Credentials.from_service_account_info(json.loads(key_json))
-client = BetaAnalyticsDataClient(credentials=credentials)
+# CORS 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4000", "http://127.0.0.1:4000"],  # Jekyll 서버 주소
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+DB = "guestbook.db"
 
-# 날짜 계산
-today = datetime.now().date()
-yesterday_date = today - timedelta(days=1)
-yesterday_str = yesterday_date.strftime('%Y-%m-%d')
-thirty_days_ago = today - timedelta(days=30)
-thirty_days_ago_str = thirty_days_ago.strftime('%Y-%m-%d')
+def hash_pw(pw: str) -> str:
+    return hashlib.sha256(pw.encode()).hexdigest()
 
-# 헬퍼 함수: 기간 데이터 가져오기 (단일 요청)
-def get_stats_for_ranges(ranges):
-    request = RunReportRequest(
-        property=f'properties/{property_id}',
-        date_ranges=ranges,
-        # dimensions=[Dimension(name='date')],  # 제거하여 range별 합산
-        metrics=[
-            Metric(name='activeUsers'),
-            Metric(name='screenPageViews'),
-            Metric(name='totalUsers'),
-        ],
+def conn():
+    return sqlite3.connect(DB)
+
+# init
+with conn() as c:
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS guestbook (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      pw_hash TEXT,
+      message TEXT,
+      created_at TEXT
     )
-    response = client.run_report(request)
-    stats = []
-    for row in response.rows:
-        stats.append({
-            'active_users': int(row.metric_values[0].value),
-            'screen_page_views': int(row.metric_values[1].value),
-            'total_users': int(row.metric_values[2].value),
-        })
-    return stats
+    """)
 
-# 데이터 가져오기 (한 요청에 여러 ranges)
-ranges = [
-    DateRange(start_date='2020-01-01', end_date=yesterday_str),  # total
-    DateRange(start_date=thirty_days_ago_str, end_date=yesterday_str),  # 30days
-    DateRange(start_date=yesterday_str, end_date=yesterday_str),  # yesterday
-]
-stats_list = get_stats_for_ranges(ranges)
+class CreateReq(BaseModel):
+    name: str
+    password: str
+    message: str
 
-print(f"Stats list length: {len(stats_list)}")
-for i, stat in enumerate(stats_list):
-    print(f"Range {i}: {stat}")
+class UpdateReq(BaseModel):
+    password: str
+    message: str
 
-data = {
-    'total': stats_list[0] if len(stats_list) > 0 else {'active_users': 0, 'screen_page_views': 0, 'total_users': 0},
-    '30days': stats_list[1] if len(stats_list) > 1 else {'active_users': 0, 'screen_page_views': 0, 'total_users': 0},
-    'yesterday': stats_list[2] if len(stats_list) > 2 else {'active_users': 0, 'screen_page_views': 0, 'total_users': 0},
-}
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
-# _data 폴더 생성
-os.makedirs('_data', exist_ok=True)
+@app.post("/guestbook")
+def create(req: CreateReq):
+    with conn() as c:
+        c.execute(
+            "INSERT INTO guestbook (name, pw_hash, message, created_at) VALUES (?,?,?,?)",
+            (req.name, hash_pw(req.password), req.message, datetime.utcnow().isoformat())
+        )
+    return {"result": "created"}
 
-# JSON 파일 저장
-with open('_data/ga_stats.json', 'w') as f:
-    json.dump(data, f, indent=2)
+@app.get("/guestbook")
+def list_guestbook(page: int = 1, per_page: int = 10):
+    offset = (page - 1) * per_page
+    with conn() as c:
+        rows = c.execute("SELECT id, name, message, created_at FROM guestbook ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset)).fetchall()
+        total = c.execute("SELECT COUNT(*) FROM guestbook").fetchone()[0]
+    # 날짜 변환
+    kst = timezone(timedelta(hours=9))
+    formatted_rows = []
+    for row in rows:
+        id, name, message, created_at = row
+        dt = datetime.fromisoformat(created_at).replace(tzinfo=timezone.utc).astimezone(kst)
+        formatted_date = dt.strftime('%Y-%m-%d %H:%M')
+        formatted_rows.append((id, name, message, formatted_date))
+    return {"entries": formatted_rows, "total": total, "page": page, "per_page": per_page}
+
+@app.put("/guestbook/{id}")
+def update(id: int, req: UpdateReq):
+    with conn() as c:
+        row = c.execute("SELECT pw_hash FROM guestbook WHERE id=?", (id,)).fetchone()
+        if not row or row[0] != hash_pw(req.password):
+            raise HTTPException(403, "invalid password")
+        c.execute("UPDATE guestbook SET message=? WHERE id=?", (req.message, id))
+    return {"result": "updated"}
+
+@app.delete("/guestbook/{id}")
+def delete(id: int, password: str):
+    with conn() as c:
+        row = c.execute("SELECT pw_hash FROM guestbook WHERE id=?", (id,)).fetchone()
+        if not row or row[0] != hash_pw(password):
+            raise HTTPException(403, "invalid password")
+        c.execute("DELETE FROM guestbook WHERE id=?", (id,))
+    return {"result": "deleted"}
