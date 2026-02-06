@@ -5,6 +5,9 @@ inputs:
   webhook_url:
     description: 'Webhook URL to send health status'
     required: false
+  health_check_url:
+    description: 'URL to perform health check'
+    required: false
   project_name:
     description: 'Project name for reporting'
     required: false
@@ -24,6 +27,9 @@ runs:
       shell: bash
     - name: End build monitoring and send report
       if: inputs.action == 'end'
+      env:
+        WEBHOOK_URL: ${{ inputs.webhook_url }}
+        HEALTH_CHECK_URL: ${{ inputs.health_check_url }}
       run: |
         END_TIME=$(date +%s)
         START_TIME=$BUILD_START_TIME
@@ -34,13 +40,24 @@ runs:
           STATUS="failure"
         fi
         
-        PAYLOAD="{\"project\":\"$PROJECT_NAME\",\"build_time\":$BUILD_TIME,\"status\":\"$STATUS\",\"timestamp\":\"$(date -Iseconds)\",\"run_id\":\"$GITHUB_RUN_ID\",\"job\":\"$GITHUB_JOB\"}"
-        
-        if [ -n "${{ inputs.webhook_url }}" ]; then
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ inputs.webhook_url }}
+        # Health check
+        HEALTH_STATUS="unknown"
+        if [ -n "$HEALTH_CHECK_URL" ]; then
+          if curl -f -s --max-time 10 "$HEALTH_CHECK_URL" > /dev/null; then
+            HEALTH_STATUS="healthy"
+          else
+            HEALTH_STATUS="unhealthy"
+          fi
         fi
         
-        echo "Build completed in $BUILD_TIME seconds with status: $STATUS"
+        PAYLOAD="{\"project\":\"$PROJECT_NAME\",\"build_time\":$BUILD_TIME,\"status\":\"$STATUS\",\"health\":\"$HEALTH_STATUS\",\"timestamp\":\"$(date -Iseconds)\",\"run_id\":\"$GITHUB_RUN_ID\",\"job\":\"$GITHUB_JOB\"}"
+        
+        if [ -n "$WEBHOOK_URL" ]; then
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK_URL"
+        fi
+        
+        echo "Build completed in $BUILD_TIME seconds with status: $STATUS, health: $HEALTH_STATUS"
         echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
         echo "build_status=$STATUS" >> $GITHUB_OUTPUT
+        echo "health_status=$HEALTH_STATUS" >> $GITHUB_OUTPUT
       shell: bash

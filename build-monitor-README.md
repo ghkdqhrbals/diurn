@@ -34,12 +34,14 @@ jobs:
 
 - `action`: 'start' or 'end' (required)
 - `webhook_url`: Webhook URL to send health status (optional)
+- `health_check_url`: URL to perform health check (optional)
 - `project_name`: Project name for reporting (optional, default: 'unknown')
 
 ## Outputs
 
 - `build_time`: Build duration in seconds (end action only)
 - `build_status`: 'success' or 'failure' (end action only)
+- `health_status`: 'healthy', 'unhealthy', or 'unknown' (end action only)
 
 ## Features
 
